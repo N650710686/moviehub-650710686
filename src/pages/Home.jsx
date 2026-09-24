@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FeaturedCarousel from '../components/FeaturedCarousel';
-import { movies as localMovies } from '../data/data';
-// TODO ขั้นที่ 5: import { useEffect } from 'react' และ import { getMovies } from '../api/tmdb'
+import { getMovies } from '../api/tmdb';
 
 const STEPS = [
   { n: 1, file: 'src/api/tmdb.js', what: 'เขียนส่วน fetch ใน getJSON' },
@@ -24,9 +23,23 @@ function shuffle(list) {
 }
 
 function Home() {
-  // สุ่มครั้งเดียวตอน component เกิด แล้วจำไว้ใน state (กดเลื่อนแล้วลำดับไม่เปลี่ยน)
-  // TODO ขั้นที่ 5: เปลี่ยนเป็น useState([]) แล้วใช้ useEffect เรียก getMovies() แล้ว setPicks(shuffle(list))
-  const [picks, setPicks] = useState(() => shuffle(localMovies));
+  const [picks, setPicks] = useState([]); // เริ่มว่าง รอข้อมูลจาก API แล้วค่อยสุ่ม
+
+  // ใช้ getMovies() ตัวเดียวกับหน้า Movies ถ้าวันนี้เคยโหลดแล้วจะได้จาก localStorage ทันที
+  useEffect(() => {
+    let ignore = false;
+    getMovies()
+      .then(list => {
+        if (!ignore) setPicks(shuffle(list));
+      })
+      .catch(() => {
+        if (!ignore) setPicks([]);
+      }); // พลาดก็แค่ไม่มีหนังแนะนำ หน้าแรกไม่ควรพัง
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   return (
     <div className="mx-auto max-w-5xl px-4 md:px-6">
@@ -37,8 +50,7 @@ function Home() {
           หนังน่าดู รวมไว้ที่เดียว
         </h1>
         <p className="mt-4 max-w-xl text-slate-600">
-          ตอนนี้ MovieHub ยังมีหนังแค่ 10 เรื่องจากไฟล์ data.js
-          วันนี้เราจะเชื่อมกับ TMDB ให้ได้หนังที่กำลังฉายจริง และเตรียมต่อกับ Backend ของทีม
+          ตอนนี้ MovieHub เชื่อมกับ TMDB เพื่อดึงหนังที่กำลังฉายจริง และเตรียมต่อกับ Backend ของทีม
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link to="/movies" className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600">
@@ -55,7 +67,7 @@ function Home() {
         <div className="mb-4 flex items-end justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">หนังแนะนำ</h2>
-            <p className="text-sm text-slate-500">สุ่มลำดับใหม่ทุกครั้งที่เปิดหน้า แหล่งข้อมูล: data.js</p>
+            <p className="text-sm text-slate-500">สุ่มลำดับใหม่ทุกครั้งที่เปิดหน้า แหล่งข้อมูล: TMDB</p>
           </div>
           <button onClick={() => setPicks(shuffle(picks))} className="text-sm text-emerald-600 hover:underline">
             สุ่มใหม่
